@@ -327,23 +327,19 @@
   </div>
 </div>
 
+  
+  
 <script type="module">
-// Firebase core
+/* ================= FIREBASE ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
-// Firestore
 import {
   getFirestore,
   doc,
   setDoc,
-  getDoc,
-  getDocs,
   collection,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 const firebaseConfig = {
   apiKey: "AIzaSyAQkOLTNjw8At2BFqP7QZLDgFQj_2EPydM",
   authDomain: "catatanchordjkimcc.firebaseapp.com",
@@ -352,225 +348,163 @@ const firebaseConfig = {
   messagingSenderId: "833601237686",
   appId: "1:833601237686:web:7225febab03f7e35072c17"
 };
-  
-// Initialize Firebase
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-async function saveSong() {
-  const id = `song_${current}`;
+/* ================= KONFIGURASI ================= */
+const TOTAL_PER_GROUP = 10;
+const TOTAL_GROUP = 3;
+const TOTAL = TOTAL_PER_GROUP * TOTAL_GROUP;
 
-  await setDoc(doc(db, "songs", id), {
-    title: titles[current],
-    content: document.getElementById('editor').value
-  });
+const KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','Bb','B'];
 
-  closeModal('editModal');
-  alert("✅ Lagu tersimpan online");
-}
+/* ================= STATE ================= */
+let songs = Array(TOTAL).fill('');
+let titles = Array.from({ length: TOTAL }, (_, i) => `Lagu ${i % TOTAL_PER_GROUP + 1}`);
 
-async function loadSongs() {
-  const snap = await getDocs(collection(db, "songs"));
+let current = 0;
+let transposeStep = 0;
+let fontSize = 18;
 
-  snap.forEach(docu => {
-    const i = parseInt(docu.id.replace("song_", ""));
-    if (!isNaN(i)) {
-      songs[i] = docu.data().content;
-      titles[i] = docu.data().title;
-    }
-  });
-
-  init();
-}
-
-  loadSongs();
-
+/* ================= FIRESTORE REALTIME ================= */
 onSnapshot(collection(db, "songs"), snap => {
-  snap.forEach(docu => {
-    const i = parseInt(docu.id.replace("song_", ""));
+  snap.forEach(d => {
+    const i = parseInt(d.id.replace("song_", ""));
     if (!isNaN(i)) {
-      songs[i] = docu.data().content;
-      titles[i] = docu.data().title;
+      songs[i] = d.data().content || '';
+      titles[i] = d.data().title || titles[i];
     }
   });
-
-  render();
+  init();
 });
 
-  
-  
-  
-</script>
-
-<script>
-  const TOTAL_PER_GROUP = 10;
-  const TOTAL = TOTAL_PER_GROUP * 3; // 30 total
-  let songs = JSON.parse(localStorage.getItem('songs')) || [];
-let titles = JSON.parse(localStorage.getItem('titles')) || [];
-
-// 🔧 Perbaiki panjang array (ANTI undefined)
-while (songs.length < TOTAL) songs.push('');
-while (titles.length < TOTAL)
-  titles.push(`Lagu ${titles.length % TOTAL_PER_GROUP + 1}`);
-
-  let current = 0;
-  let transposeStep = 0;
-  let fontSize = 16;
-
-  const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
-
-  function init() {
+/* ================= INIT ================= */
+function init() {
   renderGroup('songButtons1', 0, TOTAL_PER_GROUP);
   renderGroup('songButtons2', TOTAL_PER_GROUP, TOTAL_PER_GROUP * 2);
   renderGroup('songButtons3', TOTAL_PER_GROUP * 2, TOTAL_PER_GROUP * 3);
 }
 
-
-  function renderGroup(containerId, start, end) {
-    const box = document.getElementById(containerId);
-    box.innerHTML = '';
-    for (let i = start; i < end; i++) {
-      const item = document.createElement('div');
-      item.className = 'song-item';
-      item.onclick = () => viewSong(i);
-      item.innerHTML = `
-        <span class="song-title">${titles[i]}</span>
-        <div class="menu">
-          <button class="menu-btn" onclick="event.stopPropagation(); toggleMenu(${i})">⋮</button>
-          <div id="menu-${i}" class="menu-content">
-            <button onclick="event.stopPropagation(); editTitle(${i})">Edit Judul</button>
-            <button onclick="event.stopPropagation(); editSong(${i})">Edit Lagu</button>
-          </div>
+/* ================= LIST ================= */
+function renderGroup(containerId, start, end) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = '';
+  for (let i = start; i < end; i++) {
+    const item = document.createElement('div');
+    item.className = 'song-item';
+    item.onclick = () => viewSong(i);
+    item.innerHTML = `
+      <span class="song-title">${titles[i]}</span>
+      <div class="menu">
+        <button class="menu-btn" onclick="event.stopPropagation(); toggleMenu(${i})">⋮</button>
+        <div id="menu-${i}" class="menu-content">
+          <button onclick="event.stopPropagation(); editTitle(${i})">Edit Judul</button>
+          <button onclick="event.stopPropagation(); editSong(${i})">Edit Lagu</button>
         </div>
-      `;
-      box.appendChild(item);
-    }
+      </div>
+    `;
+    box.appendChild(item);
   }
-
-  function toggleMenu(i) {
-    const menu = document.getElementById(`menu-${i}`);
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-  }
-
-  function editTitle(i) {
-    const newTitle = prompt('Masukkan judul baru:', titles[i]);
-    if (newTitle !== null && newTitle.trim() !== '') {
-      titles[i] = newTitle.trim();
-      localStorage.setItem('titles', JSON.stringify(titles));
-      init();
-    }
-    toggleMenu(i);
-  }
-
-  function viewSong(i) {
-    current = i;
-    transposeStep = 0;
-    document.getElementById('pageList').classList.add('hidden');
-    document.getElementById('pageEditor').classList.remove('hidden');
-    document.getElementById('songTitle').innerText = titles[i];
-    render();
-  }
-
-  function editSong(i) {
-    current = i;
-    document.getElementById('editTitle').innerText = titles[i];
-    document.getElementById('editor').value = songs[i];
-    document.getElementById('editModal').classList.add('show');
-    toggleMenu(i);
-  }
-
-  function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
-  }
-
-  function backToList() {
-    document.getElementById('pageEditor').classList.add('hidden');
-    document.getElementById('pageList').classList.remove('hidden');
-  }
-
-  function saveSong() {
-    songs[current] = document.getElementById('editor').value;
-    localStorage.setItem('songs', JSON.stringify(songs));
-    closeModal('editModal');
-    init(); // Refresh list if needed
-  }
-
-  // ===== TOOLS =====
-  function transpose(step) {
-    transposeStep += step;
-    render();
-  }
-  function zoom(step) {
-    fontSize = Math.min(34, Math.max(12, fontSize + step));
-    render();
-  }
-
-  // ===== RENDER =====
-  function transposeChord(ch) {
-    const parts = ch.split('/');
-    const transposedParts = parts.map(part => {
-      const base = part.match(/^[A-G][#b]?/);
-      if (!base) return part;
-      const i = KEYS.indexOf(base[0]);
-      if (i < 0) return part;
-      const nk = KEYS[(i + transposeStep + KEYS.length) % KEYS.length];
-      return part.replace(base[0], nk);
-    });
-    return transposedParts.join('/');
-  }
-
-function render() {
-  let html = '';
-
-  const chordRegex =
-    /(?<!\S)([A-G](?:#|b)?(?:m|maj|min|sus|dim|aug|add)?\d*(?:\/[A-G](?:#|b)?(?:m|maj|min|sus|dim|aug|add)?\d*)?)(?!\S)/g;
-
-  (songs[current] || '').split('\n').forEach(line => {
-
-    if (/^.+\s:\s*$/.test(line)) {
-      html += `<div class="section">${line}</div>`;
-      return;
-    }
-
-    html += line.replace(chordRegex, chord => {
-      return `<span class="chord">${transposeChord(chord)}</span>`;
-    }) + '<br>';
-  });
-
-  const v = document.getElementById('viewer');
-  v.style.fontSize = fontSize + 'px';
-  v.innerHTML = html;
 }
 
+function toggleMenu(i) {
+  document.querySelectorAll('.menu-content').forEach(m => m.style.display = 'none');
+  document.getElementById(`menu-${i}`).style.display = 'block';
+}
 
-
-
-  // ===== IMPORT EXPORT =====
-  function exportSongs() {
-    const data = { songs, titles };
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'chord-lagu.json';
-    a.click();
-  }
-
-  function importSongs(e) {
-    const f = e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      const data = JSON.parse(r.result);
-      songs = data.songs || Array(TOTAL).fill('');
-      titles = data.titles || Array.from({length: TOTAL}, (_, i) => `Lagu ${i % TOTAL_PER_GROUP + 1}`);
-      localStorage.setItem('songs', JSON.stringify(songs));
-      localStorage.setItem('titles', JSON.stringify(titles));
-      init();
-    };
-    r.readAsText(f);
-  }
-
+function editTitle(i) {
+  const t = prompt('Judul lagu:', titles[i]);
+  if (t) titles[i] = t;
   init();
+}
+
+/* ================= VIEW ================= */
+function viewSong(i) {
+  current = i;
+  transposeStep = 0;
+  document.getElementById('pageList').classList.add('hidden');
+  document.getElementById('pageEditor').classList.remove('hidden');
+  document.getElementById('songTitle').innerText = titles[i];
+  render();
+}
+
+function backToList() {
+  document.getElementById('pageEditor').classList.add('hidden');
+  document.getElementById('pageList').classList.remove('hidden');
+}
+
+/* ================= EDIT ================= */
+function editSong(i) {
+  current = i;
+  document.getElementById('editTitle').innerText = titles[i];
+  document.getElementById('editor').value = songs[i];
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+async function saveSong() {
+  await setDoc(doc(db, "songs", `song_${current}`), {
+    title: titles[current],
+    content: document.getElementById('editor').value
+  });
+  closeModal('editModal');
+}
+
+/* ================= TOOLS ================= */
+function transpose(step) {
+  transposeStep += step;
+  render();
+}
+
+function zoom(step) {
+  fontSize = Math.min(34, Math.max(12, fontSize + step));
+  render();
+}
+
+function transposeChord(ch) {
+  const base = ch.match(/^[A-G][#b]?/);
+  if (!base) return ch;
+  const i = KEYS.indexOf(base[0]);
+  if (i < 0) return ch;
+  const nk = KEYS[(i + transposeStep + KEYS.length) % KEYS.length];
+  return ch.replace(base[0], nk);
+}
+
+/* ================= RENDER ================= */
+function render() {
+  const viewer = document.getElementById('viewer');
+  viewer.style.fontSize = fontSize + 'px';
+
+  const chordRegex =
+    /(?<!\S)([A-G](?:#|b)?(?:m|maj|min|sus|dim|aug|add)?\d*(?:\/[A-G](?:#|b)?\d*)?)(?!\S)/g;
+
+  viewer.innerHTML = (songs[current] || '')
+    .split('\n')
+    .map(line => {
+      if (/^.+\s:\s*$/.test(line)) {
+        return `<div class="section">${line}</div>`;
+      }
+      return line.replace(chordRegex, c =>
+        `<span class="chord">${transposeChord(c)}</span>`
+      );
+    })
+    .join('<br>');
+}
+
+/* ================= GLOBAL ================= */
+window.transpose = transpose;
+window.zoom = zoom;
+window.backToList = backToList;
+window.viewSong = viewSong;
+window.editSong = editSong;
+window.toggleMenu = toggleMenu;
+window.closeModal = closeModal;
+window.saveSong = saveSong;
+window.editTitle = editTitle;
 </script>
 </body>
 </html>
