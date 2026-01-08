@@ -328,126 +328,6 @@
   </div>
 </div>
 
-  
-  
-<script type="module">
-/* ================= FIREBASE ================= */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  collection,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAQkOLTNjw8At2BFqP7QZLDgFQj_2EPydM",
-  authDomain: "catatanchordjkimcc.firebaseapp.com",
-  projectId: "catatanchordjkimcc",
-  storageBucket: "catatanchordjkimcc.firebasestorage.app",
-  messagingSenderId: "833601237686",
-  appId: "1:833601237686:web:7225febab03f7e35072c17"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-/* ================= KONFIGURASI ================= */
-const TOTAL_PER_GROUP = 10;
-const TOTAL_GROUP = 3;
-const TOTAL = TOTAL_PER_GROUP * TOTAL_GROUP;
-
-const KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','Bb','B'];
-
-/* ================= STATE ================= */
-let songs = Array(TOTAL).fill('');
-let titles = Array.from({ length: TOTAL }, (_, i) => `Lagu ${i % TOTAL_PER_GROUP + 1}`);
-
-let current = 0;
-let transposeStep = 0;
-let fontSize = 18;
-
-/* 🔥 SCROLL STATE */
-let lastScrollY = 0;
-
-/* ================= FIRESTORE REALTIME ================= */
-onSnapshot(collection(db, "songs"), snap => {
-  snap.forEach(d => {
-    const i = parseInt(d.id.replace("song_", ""));
-    if (!isNaN(i)) {
-      songs[i] = d.data().content || '';
-      titles[i] = d.data().title || titles[i];
-    }
-  });
-  init();
-});
-
-/* ================= INIT ================= */
-function init() {
-  renderGroup('songButtons1', 0, TOTAL_PER_GROUP);
-  renderGroup('songButtons2', TOTAL_PER_GROUP, TOTAL_PER_GROUP * 2);
-  renderGroup('songButtons3', TOTAL_PER_GROUP * 2, TOTAL_PER_GROUP * 3);
-}
-
-/* ================= LIST ================= */
-function renderGroup(containerId, start, end) {
-  const box = document.getElementById(containerId);
-  box.innerHTML = '';
-
-  for (let i = start; i < end; i++) {
-    const item = document.createElement('div');
-    item.className = 'song-item';
-    item.onclick = () => viewSong(i);
-
-    item.innerHTML = `
-      <span class="song-title">${titles[i]}</span>
-      <div class="menu">
-        <button class="menu-btn" onclick="event.stopPropagation(); toggleMenu(${i})">⋮</button>
-        <div id="menu-${i}" class="menu-content">
-          <button onclick="event.stopPropagation(); editTitle(${i})">Edit Judul</button>
-          <button onclick="event.stopPropagation(); editSong(${i})">Edit Lagu</button>
-        </div>
-      </div>
-    `;
-
-    box.appendChild(item);
-  }
-}
-
-function toggleMenu(i) {
-  document.querySelectorAll('.menu-content').forEach(m => m.style.display = 'none');
-  document.getElementById(`menu-${i}`).style.display = 'block';
-}
-
-async function editTitle(i) {
-  const t = prompt('Judul lagu:', titles[i]);
-  if (!t) return;
-
-  titles[i] = t;
-
-  await setDoc(
-    doc(db, "songs", `song_${i}`),
-    { title: t, content: songs[i] || '' },
-    { merge: true }
-  );
-
-  init();
-}
-
-/* ================= VIEW ================= */
-function viewSong(i) {
-  /* 🔥 SIMPAN POSISI SCROLL */
-  lastScrollY = window.scrollY;
-
-  current = i;
-  transposeStep = 0;
-
-  document.getElementById('pageList').classList.add('hidden');
-  document.getElementById('pageEditor').classList.remove('hidden');
-
-  document.getElementById('songTitle').innerText = titles[i];
-  render();
 <script type="module">
 /* ================= FIREBASE ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -721,5 +601,6 @@ window.closeModal = closeModal;
 window.saveSong = saveSong;
 window.editTitle = editTitle;
 </script>
+
 </body>
 </html>
