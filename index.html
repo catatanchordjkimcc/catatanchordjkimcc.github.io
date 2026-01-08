@@ -368,6 +368,9 @@ let current = 0;
 let transposeStep = 0;
 let fontSize = 18;
 
+/* 🔥 SCROLL STATE */
+let lastScrollY = 0;
+
 /* ================= FIRESTORE REALTIME ================= */
 onSnapshot(collection(db, "songs"), snap => {
   snap.forEach(d => {
@@ -391,10 +394,12 @@ function init() {
 function renderGroup(containerId, start, end) {
   const box = document.getElementById(containerId);
   box.innerHTML = '';
+
   for (let i = start; i < end; i++) {
     const item = document.createElement('div');
     item.className = 'song-item';
     item.onclick = () => viewSong(i);
+
     item.innerHTML = `
       <span class="song-title">${titles[i]}</span>
       <div class="menu">
@@ -405,6 +410,7 @@ function renderGroup(containerId, start, end) {
         </div>
       </div>
     `;
+
     box.appendChild(item);
   }
 }
@@ -422,30 +428,39 @@ async function editTitle(i) {
 
   await setDoc(
     doc(db, "songs", `song_${i}`),
-    {
-      title: t,
-      content: songs[i] || ''
-    },
+    { title: t, content: songs[i] || '' },
     { merge: true }
   );
 
   init();
 }
 
-
 /* ================= VIEW ================= */
 function viewSong(i) {
+  /* 🔥 SIMPAN POSISI SCROLL */
+  lastScrollY = window.scrollY;
+
   current = i;
   transposeStep = 0;
+
   document.getElementById('pageList').classList.add('hidden');
   document.getElementById('pageEditor').classList.remove('hidden');
+
   document.getElementById('songTitle').innerText = titles[i];
   render();
+
+  /* pindah ke atas chord */
+  window.scrollTo(0, 0);
 }
 
 function backToList() {
   document.getElementById('pageEditor').classList.add('hidden');
   document.getElementById('pageList').classList.remove('hidden');
+
+  /* 🔥 KEMBALIKAN SCROLL */
+  requestAnimationFrame(() => {
+    window.scrollTo(0, lastScrollY);
+  });
 }
 
 /* ================= EDIT ================= */
@@ -482,8 +497,10 @@ function zoom(step) {
 function transposeChord(ch) {
   const base = ch.match(/^[A-G][#b]?/);
   if (!base) return ch;
+
   const i = KEYS.indexOf(base[0]);
   if (i < 0) return ch;
+
   const nk = KEYS[(i + transposeStep + KEYS.length) % KEYS.length];
   return ch.replace(base[0], nk);
 }
@@ -520,5 +537,6 @@ window.closeModal = closeModal;
 window.saveSong = saveSong;
 window.editTitle = editTitle;
 </script>
+
 </body>
 </html>
