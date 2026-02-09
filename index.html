@@ -261,6 +261,7 @@
       .viewer {
         padding: 16px;
         font-size: 14px;
+        touch-action: pan-y;
       }
       h1 {
         font-size: 16px;
@@ -369,6 +370,9 @@ let fontSize = 18;
 let lastScrollY = 0;
 
 /* swipe */
+let touchStartY = 0;
+let touchEndY = 0;
+
 let touchStartX = 0;
 let touchEndX = 0;
 let isAnimating = false;
@@ -577,17 +581,27 @@ const editorPage = document.getElementById('pageEditor');
 editorPage.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
     touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
   }
 });
 
 editorPage.addEventListener('touchend', e => {
   touchEndX = e.changedTouches[0].clientX;
-  const diff = touchStartX - touchEndX;
-  const threshold = 70;
+  touchEndY = e.changedTouches[0].clientY;
 
-  if (Math.abs(diff) < threshold) return;
+  const diffX = touchStartX - touchEndX;
+  const diffY = touchStartY - touchEndY;
 
-  diff > 0 ? nextSong() : prevSong();
+  const thresholdX = 80; // swipe horizontal minimal
+  const thresholdY = 80;
+
+  // 👉 kalau lebih dominan vertikal, BIARIN SCROLL
+  if (Math.abs(diffY) > Math.abs(diffX)) return;
+
+  // 👉 kalau horizontal-nya kecil, abaikan
+  if (Math.abs(diffX) < thresholdX) return;
+
+  diffX > 0 ? nextSong() : prevSong();
 });
 
 /* ================= GLOBAL ================= */
